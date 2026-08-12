@@ -22,6 +22,7 @@ type OrderItem struct {
 
 type Order struct {
 	ID         int64       `json:"id"`
+	UserID	   int         `json:"user_id"`
 	CustomerID int64       `json:"customer_id"`
 	StoreID    int64       `json:"store_id"` 
 	TotalPrice float64     `json:"total_price"`
