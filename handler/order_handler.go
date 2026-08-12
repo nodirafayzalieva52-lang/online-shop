@@ -19,7 +19,7 @@ func NewOrderHandler(OrderService *service.OrderService) *OrderHandler {
 	}
 }
 
-type createOrderRequest struct {
+type CreateOrderRequest struct {
 	UserID     int     `json:"user_id"`
 	ProductID  int     `json:"product_id"`
 	Quantity   int     `json:"quantity"`
@@ -27,7 +27,7 @@ type createOrderRequest struct {
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	var req createOrderRequest
+	var req CreateOrderRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Некорректный формат JSON", http.StatusBadRequest)
