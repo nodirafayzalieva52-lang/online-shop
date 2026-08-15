@@ -60,14 +60,19 @@ func main() {
 	// ---------- STORE ----------
 	mux.Handle("POST /store", http.HandlerFunc(storeHandler.CreateStore))
 	mux.Handle("GET /stores", http.HandlerFunc(storeHandler.GetByID))
-	mux.Handle("")
+	mux.Handle("GET /stores/seller", http.HandlerFunc(storeHandler.GetBySellerID))
 
 	// ---------- CATEGORY ----------
 	mux.Handle("POST /category", http.HandlerFunc(categoryHandler.CreateCategory))
+	mux.Handle("GET /categories", http.HandlerFunc(categoryHandler.GetAll))
+	mux.Handle("GET /categories/{id}", http.HandlerFunc(categoryHandler.GetByID))
 
 	// ---------- PRODUCT ----------
 	mux.Handle("POST /product", http.HandlerFunc(productHandler.CreateProduct))
+	mux.Handle("GET /product", http.HandlerFunc(productHandler.GetByID))
+	mux.Handle("GET /products/store", http.HandlerFunc(productHandler.GetByStoreID))
 
 	// ---------- ORDER ----------
 	mux.Handle("POST /order", http.HandlerFunc(orderHandler.CreateOrder))
+	mux.Handle("GET /orders/{id}", http.HandlerFunc(orderHandler.GetByID))
 }
