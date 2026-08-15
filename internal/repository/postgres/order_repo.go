@@ -5,36 +5,28 @@ import (
 	"database/sql"
 	"errors"
 	"shop/internal/models"
-	"shop/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // OrderRepository управляет хранением заказов в PostgreSQL
 type OrderRepository struct {  
-	db *sql.DB
-	repo repository.OrderRepository
+	db *pgxpool.Pool
 }
 
 // NewOrderRepository конструктор репозитория
-func NewOrderRepository(db *sql.DB, r repository.OrderRepository) *OrderRepository {
+func NewOrderRepository(db *pgxpool.Pool) *OrderRepository {
 	return &OrderRepository{db: db,
-	repo: r,}
+	}
 }
 
 // CreateOrder сохраняет заказ и его позиции в базе данных в единой транзакции
 func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) error {
-	// открывает транзакцию в PostgreSQL
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	// 1. Создаем запись заказа в таблице orders и получаем его ID и время создания
 	orderQuery := `INSERT INTO orders (customer_id, store_id, total_price, status)
 	VALUES ($1, $2, $3, $4) RETURNING id, created_at`
 
-	err = tx.QueryRowContext(ctx, orderQuery, order.CustomerID, order.StoreID, order.TotalPrice, order.Status).Scan(&order.ID, &order.CreatedAt)
-
+	err := r.db.QueryRow(ctx, orderQuery, order.CustomerID, order.StoreID, order.TotalPrice, order.Status).Scan(&order.ID, &order.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -45,7 +37,7 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) 
 
 	for i := range order.Items {
 		order.Items[i].OrderID = order.ID
-		err = tx.QueryRowContext(ctx, itemQuery,
+		err = r.db.QueryRow(ctx, itemQuery,
 			order.Items[i].OrderID,
 			order.Items[i].ProductID,
 			order.Items[i].Quantity,
@@ -57,8 +49,7 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) 
 		}
 	}
 
-	// Подтверждаем сохранение всех данных
-	return tx.Commit()
+	return nil
 }
 
 // GetByCustomerID возвращает список всех заказов конкретного покупателя
@@ -66,7 +57,7 @@ func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) (
 	query := `SELECT id, customer_id, store_id, total_price, status, created_at
 	FROM orders WHERE customer_id = $1 ORDER BY id DESC`
 
-	rows, err := r.db.QueryContext(ctx, query, customerID)
+	rows, err := r.db.Query(ctx, query, customerID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +84,7 @@ func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) (
 func (r *OrderRepository) GetByStoreID(ctx context.Context, storeID int) ([]models.Order, error) {
 	query := `SELECT id, customer_id, store_id, total_price, status, created_at FROM orders WHERE store_id = $1 ORDER BY id DESC`
 
-	rows, err := r.db.QueryContext(ctx, query, storeID)
+	rows, err := r.db.Query(ctx, query, storeID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +112,7 @@ func (r *OrderRepository) GetByID(ctx context.Context, id int) (*models.Order, e
 	query := `SELECT id, customer_id, store_id, total_price, status, created_at FROM orders WHERE id = $1`
 
 	var o models.Order
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&o.ID,
 		&o.CustomerID,
 		&o.StoreID,

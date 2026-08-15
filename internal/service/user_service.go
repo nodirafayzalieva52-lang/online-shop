@@ -6,7 +6,7 @@ import (
 
 	"shop/internal/models"
 	"shop/internal/repository"
-	"shop/pkg/jwt" 
+	"shop/pkg/jwt"
 )
 
 type UserService struct {
@@ -35,7 +35,7 @@ func (s *UserService) Register(ctx context.Context, email, password string) erro
 }
 
 func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
-	user := s.UserRepo.GetByEmail(ctx, email)
+	user, _ := s.UserRepo.GetByEmail(ctx, email)
 
 	if user.PasswordHash != password {
 		return "", fmt.Errorf("invalid password")

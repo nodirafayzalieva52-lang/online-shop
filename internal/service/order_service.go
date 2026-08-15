@@ -39,7 +39,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, order *models.Order) err
 	order.TotalPrice = totalPrice
 	order.Status = "created"
 
-	if err := s.OrderRepo.Create(ctx, order); err != nil {
+	if err := s.OrderRepo.Create(ctx, *order); err != nil {
 		return fmt.Errorf("failed to create order in repo: %w", err)
 	}
 

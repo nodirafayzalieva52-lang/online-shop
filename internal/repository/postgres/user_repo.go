@@ -6,31 +6,32 @@ import (
 	"errors"
 
 	"shop/internal/models"
-	"shop/internal/repository"
+	
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserRepo struct {
-	db *sql.DB
-	repo repository.UserRepository
+	db *pgxpool.Pool
 }
 
-func NewUserRepository(db *sql.DB, r repository.UserRepository) *UserRepo {
-	return &UserRepo{db: db,
-		repo: r,
+func NewUserRepository(db *pgxpool.Pool) *UserRepo {
+	return &UserRepo{
+		db: db,
 		}	
 }
 
 func (r *UserRepo) Create(ctx context.Context, user *models.User) error {
 	query := `INSERT INTO users (email, password_hash, role, created_at, updated_at) VALUES ($1,  $2, $3, $4, $5) RETURNING id, created_at, updated_at`
 
-	return r.db.QueryRowContext(ctx, query, user.Email, user.PasswordHash, user.Role).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	return r.db.QueryRow(ctx, query, user.Email, user.PasswordHash, user.Role).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id int) (*models.User, error) {
 	const query = `SELECT id, email, password_hash, role, created_at, updated_at FROM users WHERE id = $1`
 
 	var user models.User
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, id).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -47,7 +48,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 		WHERE email = $1
 	`
 	var user models.User
-	err := r.db.QueryRowContext(ctx, query, email).
+	err := r.db.QueryRow(ctx, query, email).
 		Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -37,7 +37,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, storeID int, name, d
 		Stock:       stock,
 	}
 
-	err := s.ProductRepo.Create(ctx, product)
+	err := s.ProductRepo.Create(ctx, *product)
 	if err != nil {
 		return nil, fmt.Errorf("productRepo.Create: %w", err)
 	}

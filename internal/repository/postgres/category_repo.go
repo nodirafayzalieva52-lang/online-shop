@@ -6,29 +6,29 @@ import (
 	"errors"
 
 	"shop/internal/models"
-	"shop/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CategoryRepo struct {
-	db *sql.DB
-	repo repository.CategoryRepository
+	db *pgxpool.Pool
 }
 
-func NewCategoryRepository(db *sql.DB, r repository.CategoryRepository) *CategoryRepo {
+func NewCategoryRepository(db *pgxpool.Pool) *CategoryRepo {
 	return &CategoryRepo{db: db,
-	repo: r,}
+	}
 }
 
 func (r *CategoryRepo) Create(ctx context.Context, category models.Category) error {
 	query := `INSERT INTO categories (name) VALUES ($1) RETURNING id`
 
-	return r.db.QueryRowContext(ctx, query, category.Name).Scan(&category.ID)
+	return r.db.QueryRow(ctx, query, category.Name).Scan(&category.ID)
 }
 
 func (r *CategoryRepo) GetAll(ctx context.Context) ([]*models.Category, error) {
 	query := `SELECT id, name FROM categories ORDER BY name ASC`
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (r *CategoryRepo) GetByID(ctx context.Context, id int) (*models.Category, e
 	query := `SELECT id, name FROM categories WHERE id = $1`
 
 	var cat models.Category
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&cat.ID, &cat.Name)
+	err := r.db.QueryRow(ctx, query, id).Scan(&cat.ID, &cat.Name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

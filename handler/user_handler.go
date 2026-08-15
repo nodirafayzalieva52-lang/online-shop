@@ -1,72 +1,94 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-	"shop/internal/models"
+
 	"shop/internal/service"
 	"shop/pkg/logger"
-	"strconv"
 
 	"go.uber.org/zap"
 )
 
 type UserHandler struct {
+	userService *service.UserService
 	logger      *logger.Logger
-	UserService service.UserService
 }
 
-func NewUserHandler(logger *logger.Logger, UserService service.UserService) *UserHandler {
+func NewUserHandler(userService *service.UserService, log *logger.Logger) *UserHandler {
 	return &UserHandler{
-		logger: logger,
-		UserService: UserService,
+		userService: userService,
+		logger:      log,
 	}
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		h.logger.Error("h.UserService.Create", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req RegisterRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Warn("failed to decode register body", zap.Error(err))
+		respondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	err = h.UserService.UserRepo.Create(context.TODO(), &user)
-	if err != nil {
-		h.logger.Error("h.UserService.Create", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if req.Email == "" || req.Password == "" {
+		h.logger.Warn("register validation failed: missing email or password")
+		respondWithError(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
 
+	err := h.userService.Register(r.Context(), req.Email, req.Password)
+	if err != nil {
+		h.logger.Error("failed to register user", 
+			zap.String("email", req.Email), 
+			zap.Error(err),
+		)
+		respondWithError(w, http.StatusInternalServerError, "failed to register user")
+		return
+	}
+
+	h.logger.Info("user registered successfully", zap.String("email", req.Email))
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		h.logger.Error("h.UserService.GetByID", zap.Error(err))
-		http.Error(w, "invalid id", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Warn("failed to decode login body", zap.Error(err))
+		respondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	user, err := h.UserService.UserRepo.GetByID(context.TODO(), id)
-	if err != nil {
-		h.logger.Error("h.UserSErvice.GetByID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusNotFound)
+	if req.Email == "" || req.Password == "" {
+		h.logger.Warn("login validation failed: missing email or password")
+		respondWithError(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
 
+	token, err := h.userService.Login(r.Context(), req.Email, req.Password)
+	if err != nil {
+		h.logger.Warn("failed login attempt", 
+			zap.String("email", req.Email), 
+			zap.Error(err),
+		)
+		respondWithError(w, http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+
+	h.logger.Info("user logged in successfully", zap.String("email", req.Email))
+	respondWithJSON(w, http.StatusOK, LoginResponse{Token: token})
+}
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(payload)
+}
 
-	err = json.NewEncoder(w).Encode(user)
-	if err != nil {
-		h.logger.Error("h.UserService.GetByID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJSON(w, code, ErrorResponse{Error: message})
 }

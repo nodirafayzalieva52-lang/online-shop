@@ -20,7 +20,7 @@ func NewAuthService(UserRepo repository.UserRepository) *AuthService {
 }
 
 func (a *AuthService) Register(ctx context.Context, email, password string) error {
-	existsUser := a.UserRepo.GetByEmail(ctx, email)
+	existsUser, _ := a.UserRepo.GetByEmail(ctx, email)
 	if existsUser != nil {
 		return fmt.Errorf("user with this email is already exists")
 	}
@@ -39,7 +39,7 @@ func (a *AuthService) Register(ctx context.Context, email, password string) erro
 }
 
 func (a *AuthService) Login(ctx context.Context, email, password string) (string, error) {
-	user := a.UserRepo.GetByEmail(ctx, email)
+	user, _ := a.UserRepo.GetByEmail(ctx, email)
 	
 	if user.PasswordHash != password {
 		return "", fmt.Errorf("invalid password")

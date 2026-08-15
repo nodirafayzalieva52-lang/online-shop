@@ -29,7 +29,7 @@ func (s *StoreService) CreateStore(ctx context.Context, sellerID int, name, desc
 		Description: description,
 	}
 
-	err := s.storeRepo.Create(ctx, store)
+	err := s.storeRepo.Create(ctx, *store)
 	if err != nil {
 		return nil, fmt.Errorf("storeRepo.Create: %w", err)
 	}
