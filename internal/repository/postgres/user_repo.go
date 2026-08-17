@@ -22,7 +22,7 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepo {
 }
 
 func (r *UserRepo) Create(ctx context.Context, user *models.User) error {
-	query := `INSERT INTO users (email, password_hash, role, created_at, updated_at) VALUES ($1,  $2, $3, $4, $5) RETURNING id, created_at, updated_at`
+	query := `INSERT INTO users (email, password_hash, role) VALUES ($1,  $2, $3) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(ctx, query, user.Email, user.PasswordHash, user.Role).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }

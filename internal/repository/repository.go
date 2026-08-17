@@ -25,17 +25,17 @@ type CategoryRepository interface {
 }
 
 type ProductRespository interface {
-	Create(ctx context.Context, product models.Product)  error
+	Create(ctx context.Context, product *models.Product)  error
 	GetByID(ctx context.Context, id int) (*models.Product, error)
-	GettByStoreID(ctx context.Context, storeID int) ([]*models.Product, error)
-	GetAll(ctx context.Context) ([]*models.Product, error)
+	GetByStoreID(ctx context.Context, storeID int) ([]*models.Product, error)
+	GetAll(ctx context.Context) ([]models.Product, error)
 	UpdateStock(ctx context.Context, productID int, delta int) error
 }
 
 type OrderRepository interface {
 	Create(ctx context.Context, order models.Order) error
 	GetByID(ctx context.Context, id int) (*models.Order, error)
+	GetByUserID(ctx context.Context, id int) ([]*models.Order, error)
 	GetByCustomerID(ctx context.Context, customersID int) ([]*models.Order, error)
 	GetByStoreID(ctx context.Context, storeID int) ([]*models.Order, error)
-	DeleteOrder(ctx context.Context, id int) error
 }

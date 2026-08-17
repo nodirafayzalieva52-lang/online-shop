@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"shop/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +19,7 @@ func NewOrderRepository(db *pgxpool.Pool) *OrderRepository {
 	}
 }
 
-func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) error {
+func (r *OrderRepository) Create(ctx context.Context, order models.Order) error {
 	orderQuery := `INSERT INTO orders (customer_id, store_id, total_price, status)
 	VALUES ($1, $2, $3, $4) RETURNING id, created_at`
 
@@ -48,8 +49,7 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) 
 	return nil
 }
 
-// GetByCustomerID возвращает список всех заказов конкретного покупателя
-func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) ([]models.Order, error) {
+func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) ([]*models.Order, error) {
 	query := `SELECT id, customer_id, store_id, total_price, status, created_at
 	FROM orders WHERE customer_id = $1 ORDER BY id DESC`
 
@@ -59,7 +59,7 @@ func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) (
 	}
 	defer rows.Close()
 
-	var orders []models.Order
+	var orders []*models.Order
 	for rows.Next() {
 		var o models.Order
 		if err := rows.Scan(
@@ -72,12 +72,12 @@ func (r *OrderRepository) GetByCustomerID(ctx context.Context, customerID int) (
 		); err != nil {
 			return nil, err
 		}
-		orders = append(orders, o)
+		orders = append(orders, &models.Order{})
 	}
 	return orders, nil
 }
 
-func (r *OrderRepository) GetByStoreID(ctx context.Context, storeID int) ([]models.Order, error) {
+func (r *OrderRepository) GetByStoreID(ctx context.Context, storeID int) ([]*models.Order, error) {
 	query := `SELECT id, customer_id, store_id, total_price, status, created_at FROM orders WHERE store_id = $1 ORDER BY id DESC`
 
 	rows, err := r.db.Query(ctx, query, storeID)
@@ -86,7 +86,7 @@ func (r *OrderRepository) GetByStoreID(ctx context.Context, storeID int) ([]mode
 	}
 	defer rows.Close()
 
-	var orders []models.Order
+	var orders []*models.Order
 	for rows.Next() {
 		var o models.Order
 		if err := rows.Scan(
@@ -99,7 +99,7 @@ func (r *OrderRepository) GetByStoreID(ctx context.Context, storeID int) ([]mode
 		); err != nil {
 			return nil, err
 		}
-		orders = append(orders, o)
+		orders = append(orders, &models.Order{})
 	}
 	return orders, nil
 }
@@ -125,4 +125,35 @@ func (r *OrderRepository) GetByID(ctx context.Context, id int) (*models.Order, e
 	}
 
 	return &o, nil
+}
+
+func (r *OrderRepository) GetByUserID(ctx context.Context, userID int) ([]*models.Order, error) {
+	query := `
+		SELECT id, user_id, product_id, quantity, total_price, created_at 
+		FROM orders 
+		WHERE user_id = $1 
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка запроса заказов пользователя: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []*models.Order
+	for rows.Next() {
+		var o models.Order
+		err := rows.Scan(&o.ID, &o.UserID, &o.ID, &o.Quantity, &o.TotalPrice, &o.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка сканирования строки заказа: %w", err)
+		}
+		orders = append(orders, &o)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка итерации по заказам: %w", err)
+	}
+
+	return orders, nil
 }

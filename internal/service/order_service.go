@@ -20,7 +20,7 @@ func NewOrderService(OrderRepo repository.OrderRepository) *OrderService {
 	}
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, order *models.Order) error {
+func (s *OrderService) Create(ctx context.Context, order models.Order) error {
 	if len(order.Items) == 0 {
 		return pkg.ErrEmptyOrder
 	}
@@ -39,7 +39,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, order *models.Order) err
 	order.TotalPrice = totalPrice
 	order.Status = "created"
 
-	if err := s.OrderRepo.Create(ctx, *order); err != nil {
+	if err := s.OrderRepo.Create(ctx, order); err != nil {
 		return fmt.Errorf("failed to create order in repo: %w", err)
 	}
 
@@ -68,4 +68,17 @@ func (s *OrderService) GetByID(ctx context.Context, id int) (*models.Order, erro
 	}
 
 	return s.OrderRepo.GetByID(ctx, id)
+}
+
+func (s *OrderService) GetUserOrders(ctx context.Context, userID int) ([]*models.Order, error) {
+	if userID <= 0 {
+		return nil, fmt.Errorf("некорректный ID пользователя")
+	}
+
+	orders, err := s.OrderRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("OrderService.GetUserOrders: %w", err)
+	}
+
+	return orders, nil
 }

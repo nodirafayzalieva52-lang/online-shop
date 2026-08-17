@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -16,7 +15,7 @@ type OrderHandler struct {
 	log          *logger.Logger
 }
 
-func NewOrderHandler(OrderService *service.OrderService, log *log.Logger) *OrderHandler {
+func NewOrderHandler(OrderService *service.OrderService, log *logger.Logger) *OrderHandler {
 	return &OrderHandler{
 		OrderService: OrderService,
 		log: &logger.Logger{},
@@ -38,7 +37,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order := h.OrderService.CreateOrder(r.Context(), &models.Order{})
+	order := h.OrderService.Create(r.Context(), models.Order{})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -61,4 +60,27 @@ func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(order)
+}
+
+func (h *OrderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil || userID <= 0 {
+		http.Error(w, "Некорректный параметр user_id", http.StatusBadRequest)
+		return
+	}
+
+	orders, err := h.OrderService.GetUserOrders(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if orders == nil {
+		orders = []*models.Order{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(orders)
 }

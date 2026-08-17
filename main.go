@@ -26,11 +26,11 @@ func main() {
 	}
 	defer pool.Close()
 	
-	log, err := logger.New(true)
+	logger, err := logger.New(true)
 
 	userRepo := postgres.NewUserRepository(pool)
 	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService, log)
+	userHandler := handler.NewUserHandler(userService, logger)
 
 	storeRepo := postgres.NewStoreRepository(pool)
 	storeService := service.NewStoreService(storeRepo)
@@ -46,8 +46,7 @@ func main() {
 
 	orderRepo := postgres.NewOrderRepository(pool)
 	orderService := service.NewOrderService(orderRepo)
-	orderHandler := handler.NewOrderHandler(orderService)
-
+	orderHandler := handler.NewOrderHandler(orderService, logger)
 
 	mux := http.NewServeMux()
 
@@ -57,7 +56,7 @@ func main() {
 
 	// ---------- STORE ----------
 	mux.Handle("POST /store", http.HandlerFunc(storeHandler.CreateStore))
-	mux.Handle("GET /stores", http.HandlerFunc(storeHandler.GetByID))
+	mux.Handle("GET /stores/{id}", http.HandlerFunc(storeHandler.GetByID))
 	mux.Handle("GET /stores/seller", http.HandlerFunc(storeHandler.GetBySellerID))
 
 	// ---------- CATEGORY ----------
@@ -72,5 +71,16 @@ func main() {
 
 	// ---------- ORDER ----------
 	mux.Handle("POST /order", http.HandlerFunc(orderHandler.CreateOrder))
+	mux.Handle("GET /orders", http.HandlerFunc(orderHandler.GetUserOrders))
 	mux.Handle("GET /orders/{id}", http.HandlerFunc(orderHandler.GetByID))
+
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	log.Println("Server is running on port :8080...")
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }

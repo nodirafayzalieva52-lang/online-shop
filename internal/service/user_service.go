@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	
 
 	"shop/internal/models"
 	"shop/internal/repository"
@@ -35,8 +36,10 @@ func (s *UserService) Register(ctx context.Context, email, password string) erro
 }
 
 func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
-	user, _ := s.UserRepo.GetByEmail(ctx, email)
-
+	user, err := s.UserRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("s.UserRepo.GetByEmail: %w", err)
+	}
 	if user.PasswordHash != password {
 		return "", fmt.Errorf("invalid password")
 	}
