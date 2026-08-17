@@ -37,4 +37,5 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id int) (*models.Order, error)
 	GetByCustomerID(ctx context.Context, customersID int) ([]*models.Order, error)
 	GetByStoreID(ctx context.Context, storeID int) ([]*models.Order, error)
+	DeleteOrder(ctx context.Context, id int) error
 }

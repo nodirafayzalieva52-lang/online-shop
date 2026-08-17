@@ -9,20 +9,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// OrderRepository управляет хранением заказов в PostgreSQL
 type OrderRepository struct {  
 	db *pgxpool.Pool
 }
 
-// NewOrderRepository конструктор репозитория
 func NewOrderRepository(db *pgxpool.Pool) *OrderRepository {
 	return &OrderRepository{db: db,
 	}
 }
 
-// CreateOrder сохраняет заказ и его позиции в базе данных в единой транзакции
 func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) error {
-	// 1. Создаем запись заказа в таблице orders и получаем его ID и время создания
 	orderQuery := `INSERT INTO orders (customer_id, store_id, total_price, status)
 	VALUES ($1, $2, $3, $4) RETURNING id, created_at`
 

@@ -12,8 +12,6 @@ import (
 	"shop/pkg/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	// "github.com/nodirafayzalieva52-lang/cinema/api-gateway/api/handlers/middleware"
-	// "github.com/nodirafayzalieva52-lang/userservice/pkg/password"
 )
 
 func main() {
@@ -48,7 +46,7 @@ func main() {
 
 	orderRepo := postgres.NewOrderRepository(pool)
 	orderService := service.NewOrderService(orderRepo)
-	orderHandler := handler.NewOrderHandler(orderRepo)
+	orderHandler := handler.NewOrderHandler(orderService)
 
 
 	mux := http.NewServeMux()

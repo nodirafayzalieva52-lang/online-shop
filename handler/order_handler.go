@@ -2,20 +2,24 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"shop/internal/models"
 	"shop/internal/service"
+	"shop/pkg/logger"
 )
 
 type OrderHandler struct {
 	OrderService *service.OrderService
+	log          *logger.Logger
 }
 
-func NewOrderHandler(OrderService *service.OrderService) *OrderHandler {
+func NewOrderHandler(OrderService *service.OrderService, log *log.Logger) *OrderHandler {
 	return &OrderHandler{
 		OrderService: OrderService,
+		log: &logger.Logger{},
 	}
 }
 
@@ -58,4 +62,3 @@ func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(order)
 }
-
