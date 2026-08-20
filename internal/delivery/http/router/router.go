@@ -7,6 +7,9 @@ import (
 	"shop/internal/delivery/http/middleware"
 	"shop/internal/domain"
 	"shop/pkg/logger"
+
+	// swaggerFiles "github.com/swaggo/files"
+	// ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Deps struct {
@@ -87,5 +90,7 @@ func NewRouter(d Deps) http.Handler {
 	}
 	handler = middleware.CORS(d.AllowedOrigins)(handler)
 
+	// handler.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// mux.Handle("GET /swagger/*any", http.HandlerFunc((swaggerFiles.Handler)))
 	return handler
 }
