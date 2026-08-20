@@ -34,8 +34,8 @@ func NewOrderHandler(orderService *service.OrderService, log *logger.Logger) *Or
 // @Accept json
 // @Produce json
 // @Success 201 {object} dto.CreateOrderRequest true "Order Data"
-// @Failure 400 {object}
-// @Failure 500 {object}
+// @Failure 400 {object} Bad Request
+// @Failure 500 {object} Internal Server Error
 // @Router /orders [POST]
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	customerID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -99,8 +99,8 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Order ID"
 // @Success 200 {object} domain.Order
-// @Failure 400 {object} 
-// @Failure 500 {object}
+// @Failure 400 {object} Bad Request
+// @Failure 500 {object} Internal Server Error
 // @Router /orders/{id} [GET]
 func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
@@ -141,8 +141,8 @@ func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} domain.Order
-// @Failure 400 {object} 
-// @Failure 500 {object}
+// @Failure 400 {object} Bad Request
+// @Failure 500 {object} Internal Server Error
 // @Router /orders [GET]
 func (h *OrderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -174,8 +174,8 @@ func (h *OrderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param body dto.UpdateOrderStatusRequest true "Order Status Update Data"
 // @Success 200 {object} domain.Role
-// @Failure 400 {object}
-// @Failute 500 {object}
+// @Failure 400 {object} Bad Request
+// @Failute 500 {object} Internal Server Error
 // @Router /orders/{id}/status [PATCH]
 func (h *OrderHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())

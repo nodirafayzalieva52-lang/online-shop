@@ -22,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
+
 // @title           Online Shop API
 // @version         1.0
 // @description     API сервис интернет-магазина

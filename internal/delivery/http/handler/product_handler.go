@@ -53,8 +53,8 @@ func parsePagination(r *http.Request) (int, int) {
 // @Produce json
 // @Param body dto.CreateProductRequest true "Product Data"
 // @Success 201 {object} domain.Product
-// @Failure 400 {object} 
-// @Failure 500 {object}
+// @Failure 400 {object} Bad Request
+// @Failure 500 {object} Internal Server Error
 // @Router /products [POST]
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())

@@ -50,8 +50,8 @@ func NewRouter(d Deps) http.Handler {
 		sellerOrAdmin := d.AuthMiddleware.RequireRole(domain.RoleSeller, domain.RoleAdmin)
 
 		// User profile
-		mux.Handle("GET /me", auth(http.HandlerFunc(d.UserHandler.GetMe)))
-		mux.Handle("PATCH /me", auth(http.HandlerFunc(d.UserHandler.UpdateMe)))
+		mux.Handle("GET /users/me", auth(http.HandlerFunc(d.UserHandler.GetMe)))
+		mux.Handle("PATCH /user/me", auth(http.HandlerFunc(d.UserHandler.UpdateMe)))
 
 		// Stores
 		mux.Handle("POST /stores", auth(http.HandlerFunc(d.StoreHandler.CreateStore)))
