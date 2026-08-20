@@ -2,42 +2,57 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"shop/internal/models"
+	"shop/internal/delivery/http/dto"
+	"shop/internal/domain"
 	"shop/internal/repository"
+	appErr "shop/pkg/errors"
 )
 
 type ProductService struct {
-	ProductRepo repository.ProductRespository
+	productRepo repository.ProductRepository
+	storeRepo   repository.StoreRepository
 }
 
-func NewProductService(ProductRepo repository.ProductRespository) *ProductService {
+func NewProductService(productRepo repository.ProductRepository, storeRepo repository.StoreRepository) *ProductService {
 	return &ProductService{
-		ProductRepo: ProductRepo,
+		productRepo: productRepo,
+		storeRepo:   storeRepo,
 	}
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, storeID int, name, description string, price float64, stock int) (*models.Product, error) {
-	if name == "" {
-		return nil, fmt.Errorf("название товара не может быть пустым")
+func (s *ProductService) CreateProduct(ctx context.Context, userID int64, userRole domain.Role, req dto.CreateProductRequest) (*domain.Product, error) {
+	if req.Name == "" {
+		return nil, errors.New("product name cannot be empty")
 	}
-	if price <= 0 {
-		return nil, fmt.Errorf("цена товара должна быть больше нуля")
+	if req.Price <= 0 {
+		return nil, errors.New("product price must be greater than zero")
 	}
-	if stock < 0 {
-		return nil, fmt.Errorf("количество товара не может быть отрицательным")
-	}
-
-	product := &models.Product{
-		StoreID:     storeID,
-		Name:        name,
-		Description: description,
-		Price:       price,
-		Stock:       stock,
+	if req.Stock < 0 {
+		return nil, errors.New("product stock cannot be negative")
 	}
 
-	err := s.ProductRepo.Create(ctx, product)
+	store, err := s.storeRepo.GetByID(ctx, req.StoreID)
+	if err != nil || store == nil {
+		return nil, appErr.ErrStoreNotFound
+	}
+
+	if store.SellerID != userID && userRole != domain.RoleAdmin {
+		return nil, appErr.ErrAccessDenied
+	}
+
+	product := &domain.Product{
+		StoreID:     req.StoreID,
+		CategoryID:  req.CategoryID,
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+		Stock:       req.Stock,
+	}
+
+	err = s.productRepo.Create(ctx, product)
 	if err != nil {
 		return nil, fmt.Errorf("productRepo.Create: %w", err)
 	}
@@ -45,28 +60,97 @@ func (s *ProductService) CreateProduct(ctx context.Context, storeID int, name, d
 	return product, nil
 }
 
-func (s *ProductService) GetByID(ctx context.Context, id int) (*models.Product, error) {
+func (s *ProductService) GetByID(ctx context.Context, id int64) (*domain.Product, error) {
 	if id <= 0 {
-		return nil, fmt.Errorf("некорректный id товара")
+		return nil, errors.New("invalid product id")
 	}
 
-	product, err := s.ProductRepo.GetByID(ctx, id)
+	product, err := s.productRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("товар не найден: %w", err)
+		return nil, fmt.Errorf("failed to fetch product: %w", err)
+	}
+	if product == nil {
+		return nil, appErr.ErrProductNotFound
 	}
 
 	return product, nil
 }
 
-func (s *ProductService) GetByStoreID(ctx context.Context, storeID int) ([]*models.Product, error) {
+func (s *ProductService) GetByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]*domain.Product, error) {
 	if storeID <= 0 {
-		return nil, fmt.Errorf("некорректный id магазина")
+		return nil, errors.New("invalid store id")
 	}
 
-	products, err := s.ProductRepo.GetByStoreID(ctx, storeID)
+	products, err := s.productRepo.GetByStoreID(ctx, storeID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при получении товаров магазина: %w", err)
+		return nil, fmt.Errorf("failed to fetch store products: %w", err)
 	}
 
 	return products, nil
+}
+
+func (s *ProductService) GetAll(ctx context.Context, limit, offset int) ([]*domain.Product, error) {
+	return s.productRepo.GetAll(ctx, limit, offset)
+}
+
+func (s *ProductService) UpdateProduct(ctx context.Context, productID int64, userID int64, userRole domain.Role, req dto.UpdateProductRequest) (*domain.Product, error) {
+	product, err := s.GetByID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	store, err := s.storeRepo.GetByID(ctx, product.StoreID)
+	if err != nil || store == nil {
+		return nil, appErr.ErrStoreNotFound
+	}
+
+	if store.SellerID != userID && userRole != domain.RoleAdmin {
+		return nil, appErr.ErrAccessDenied
+	}
+
+	if req.CategoryID != nil {
+		product.CategoryID = *req.CategoryID
+	}
+	if req.Name != nil && *req.Name != "" {
+		product.Name = *req.Name
+	}
+	if req.Description != nil {
+		product.Description = *req.Description
+	}
+	if req.Price != nil {
+		if *req.Price <= 0 {
+			return nil, errors.New("product price must be greater than zero")
+		}
+		product.Price = *req.Price
+	}
+	if req.Stock != nil {
+		if *req.Stock < 0 {
+			return nil, errors.New("product stock cannot be negative")
+		}
+		product.Stock = *req.Stock
+	}
+
+	if err := s.productRepo.Update(ctx, product); err != nil {
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+
+	return product, nil
+}
+
+func (s *ProductService) DeleteProduct(ctx context.Context, productID int64, userID int64, userRole domain.Role) error {
+	product, err := s.GetByID(ctx, productID)
+	if err != nil {
+		return err
+	}
+
+	store, err := s.storeRepo.GetByID(ctx, product.StoreID)
+	if err != nil || store == nil {
+		return appErr.ErrStoreNotFound
+	}
+
+	if store.SellerID != userID && userRole != domain.RoleAdmin {
+		return appErr.ErrAccessDenied
+	}
+
+	return s.productRepo.Delete(ctx, productID)
 }

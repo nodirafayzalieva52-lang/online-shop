@@ -1,0 +1,9 @@
+basePath: /cmd/api
+host: localhost:8080
+info:
+  contact: {}
+  description: API сервис интернет-магазина
+  title: Online Shop API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

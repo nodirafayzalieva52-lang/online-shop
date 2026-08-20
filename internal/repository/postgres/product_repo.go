@@ -2,110 +2,153 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+	"fmt"
 
-	"shop/internal/models"
+	"shop/internal/domain"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// ProductRepo implements repository.ProductRepository for PostgreSQL.
 type ProductRepo struct {
 	db *pgxpool.Pool
 }
 
+// NewProductRepository constructs a new ProductRepo instance.
 func NewProductRepository(db *pgxpool.Pool) *ProductRepo {
-	return &ProductRepo{db: db, 
-	}
+	return &ProductRepo{db: db}
 }
 
-func (r *ProductRepo) Create(ctx context.Context, product *models.Product) error {
-	query := `INSERT INTO products (store_id, category_id, title, description, price, stock, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`
+// Create inserts a new product record into database.
+func (r *ProductRepo) Create(ctx context.Context, product *domain.Product) error {
+	query := `INSERT INTO products (store_id, category_id, name, description, price, stock)
+	VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at, updated_at`
 
-	return r.db.QueryRow(ctx, query, product.StoreID, product.CategoryID, product.Title,
-		product.Description, product.Price, product.Stock,).Scan(&product.ID, &product.Created_At, &product.Updated_At)
+	return r.db.QueryRow(ctx, query,
+		product.StoreID,
+		product.CategoryID,
+		product.Name,
+		product.Description,
+		product.Price,
+		product.Stock,
+	).Scan(&product.ID, &product.CreatedAt, &product.UpdatedAt)
 }
 
-func (r *ProductRepo) GetByID(ctx context.Context, id int) (*models.Product, error) {
-	query := `SELECT id, store_id, category_id, title, description, price, stock, created_at, updated_at
+// GetByID fetches a product by primary key.
+func (r *ProductRepo) GetByID(ctx context.Context, id int64) (*domain.Product, error) {
+	query := `SELECT id, store_id, category_id, name, description, price, stock, created_at, updated_at
 	FROM products WHERE id = $1`
 
-	var p models.Product
-	err := r.db.QueryRow(ctx, query, id).Scan(&p.ID, &p.StoreID, &p.CategoryID, &p.Title, &p.Description, &p.Price, &p.Stock, &p.Created_At, &p.Updated_At)
+	var p domain.Product
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&p.ID, &p.StoreID, &p.CategoryID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.CreatedAt, &p.UpdatedAt,
+	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &p, err
+	return &p, nil
 }
 
-func (r *ProductRepo) GetByStoreID(ctx context.Context, storeID int) ([]*models.Product, error) {
-	query := `SELECT id, store_id, category_id, title, description, price, stock, created_at, updated_at
-	FROM products WHERE store_id = $1 ORDER BY created_at DESC`
+// GetByStoreID fetches products belonging to a store with pagination.
+func (r *ProductRepo) GetByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]*domain.Product, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := `SELECT id, store_id, category_id, name, description, price, stock, created_at, updated_at
+	FROM products WHERE store_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(ctx, query, storeID)
+	rows, err := r.db.Query(ctx, query, storeID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var products []*models.Product
+	var products []*domain.Product
 	for rows.Next() {
-			var p models.Product
-		if err := rows.Scan(&p.ID, &p.StoreID, &p.CategoryID, &p.Title, &p.Description, &p.Price, &p.Stock, &p.Created_At, &p.Updated_At); err != nil {
+		var p domain.Product
+		if err := rows.Scan(
+			&p.ID, &p.StoreID, &p.CategoryID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.CreatedAt, &p.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		products = append(products, &p)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return products, nil
 }
 
-func (r *ProductRepo) GetAll(ctx context.Context) ([]models.Product, error) {
-	query := `SELECT id, store_id, category_id, name, description, price, stock, created_at
-	FROM prodycts ORDER BY id DESC`
+// GetAll fetches all products with pagination.
+func (r *ProductRepo) GetAll(ctx context.Context, limit, offset int) ([]*domain.Product, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := `SELECT id, store_id, category_id, name, description, price, stock, created_at, updated_at
+	FROM products ORDER BY id DESC LIMIT $1 OFFSET $2`
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var products []models.Product
+	var products []*domain.Product
 	for rows.Next() {
-		var p models.Product
+		var p domain.Product
 		err := rows.Scan(
-			&p.ID,
-			&p.StoreID,
-			&p.CategoryID,
-			&p.Name,
-			&p.Description,
-			&p.Price,
-			&p.Stock,
-			&p.Created_At,
+			&p.ID, &p.StoreID, &p.CategoryID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		products = append(products, p)
+		products = append(products, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return products, nil
 }
 
-func (r *ProductRepo) UpdateStock(ctx context.Context, ProductID int, delta int) error {
-	query := `UPDATE products SET stock = stock + $1 WHERE id = $2 AND (stock = $1) >= 0`
+// Update modifies product details.
+func (r *ProductRepo) Update(ctx context.Context, product *domain.Product) error {
+	query := `UPDATE products 
+	SET category_id = $1, name = $2, description = $3, price = $4, stock = $5, updated_at = NOW() 
+	WHERE id = $6`
+	_, err := r.db.Exec(ctx, query,
+		product.CategoryID,
+		product.Name,
+		product.Description,
+		product.Price,
+		product.Stock,
+		product.ID,
+	)
+	return err
+}
 
-	result, err := r.db.Exec(ctx, query, delta, ProductID)
+// Delete removes a product by ID.
+func (r *ProductRepo) Delete(ctx context.Context, id int64) error {
+	query := `DELETE FROM products WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}
+
+// UpdateStock atomic modification of product stock.
+func (r *ProductRepo) UpdateStock(ctx context.Context, productID int64, delta int) error {
+	query := `UPDATE products SET stock = stock + $1, updated_at = NOW() WHERE id = $2 AND (stock + $1) >= 0`
+
+	result, err := r.db.Exec(ctx, query, delta, productID)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected := result.RowsAffected()
-
-	if rowsAffected == 0 {
-		return errors.New("insufficient stock or product not found")
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("insufficient stock or product not found")
 	}
 	return nil
 }

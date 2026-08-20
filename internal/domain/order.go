@@ -1,4 +1,4 @@
-package models
+package domain
 
 import "time"
 
@@ -14,27 +14,18 @@ type OrderItem struct {
 	ID        int64    `json:"id"`
 	OrderID   int64    `json:"order_id"`
 	ProductID int64    `json:"product_id"`
-	StoreID   int64    `json:"store_id"` 
+	StoreID   int64    `json:"store_id"`
 	Quantity  int      `json:"quantity"`
-	Price     float64  `json:"price"` 
+	Price     float64  `json:"price"`
 	Product   *Product `json:"product,omitempty"`
 }
 
 type Order struct {
 	ID         int64       `json:"id"`
-	UserID	   int         `json:"user_id"`
-	Quantity   int64       `json:"quantity"`
 	CustomerID int64       `json:"customer_id"`
-	StoreID    int64       `json:"store_id"` 
+	StoreID    int64       `json:"store_id"`
 	TotalPrice float64     `json:"total_price"`
 	Status     OrderStatus `json:"status"`
 	Items      []OrderItem `json:"items"`
 	CreatedAt  time.Time   `json:"created_at"`
-}
-
-type CreateOrderRequest struct {
-	UserID     int     `json:"user_id"`
-	ProductID  int     `json:"product_id"`
-	Quantity   int     `json:"quantity"`
-	TotalPrice float64 `json:"total_price"`
 }

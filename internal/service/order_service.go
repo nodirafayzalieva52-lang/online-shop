@@ -5,48 +5,63 @@ import (
 	"errors"
 	"fmt"
 
-	"shop/internal/models"
+	"shop/internal/domain"
 	"shop/internal/repository"
-	"shop/pkg/errors"
+	appErr "shop/pkg/errors"
 )
 
 type OrderService struct {
 	OrderRepo repository.OrderRepository
+	StoreRepo repository.StoreRepository
 }
 
-func NewOrderService(OrderRepo repository.OrderRepository) *OrderService {
+func NewOrderService(orderRepo repository.OrderRepository, storeRepo repository.StoreRepository) *OrderService {
 	return &OrderService{
-		OrderRepo: OrderRepo,
+		OrderRepo: orderRepo,
+		StoreRepo: storeRepo,
 	}
 }
 
-func (s *OrderService) Create(ctx context.Context, order models.Order) error {
+func (s *OrderService) Create(ctx context.Context, order *domain.Order) error {
 	if len(order.Items) == 0 {
-		return pkg.ErrEmptyOrder
+		return appErr.ErrEmptyOrder
 	}
-
-	var totalPrice float64
-	for _, item := range order.Items {
-		if item.Quantity <= 0 {
-			return fmt.Errorf("%w: item quantity must be greater than zero", pkg.ErrInvalidOrder)
-		}
-		if item.Price < 0 {
-			return fmt.Errorf("%w: item price cannot be negative", pkg.ErrInvalidOrder)
-		}
-		totalPrice += item.Price * float64(item.Quantity)
+	if order.StoreID <= 0 {
+		return errors.New("store_id is required")
 	}
-
-	order.TotalPrice = totalPrice
-	order.Status = "created"
 
 	if err := s.OrderRepo.Create(ctx, order); err != nil {
-		return fmt.Errorf("failed to create order in repo: %w", err)
+		return fmt.Errorf("failed to create order: %w", err)
 	}
 
 	return nil
 }
 
-func (s *OrderService) GetByCustomerID(ctx context.Context, customerID int) ([]*models.Order, error) {
+func (s *OrderService) GetByID(ctx context.Context, orderID int64, userID int64, userRole domain.Role) (*domain.Order, error) {
+	if orderID <= 0 {
+		return nil, errors.New("invalid order id")
+	}
+
+	order, err := s.OrderRepo.GetByID(ctx, orderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch order: %w", err)
+	}
+	if order == nil {
+		return nil, appErr.ErrOrderNotFound
+	}
+
+	// Permission check: customer who placed order, seller who owns store, or admin
+	if userRole != domain.RoleAdmin && order.CustomerID != userID {
+		store, err := s.StoreRepo.GetByID(ctx, order.StoreID)
+		if err != nil || store == nil || store.SellerID != userID {
+			return nil, appErr.ErrAccessDenied
+		}
+	}
+
+	return order, nil
+}
+
+func (s *OrderService) GetByCustomerID(ctx context.Context, customerID int64) ([]*domain.Order, error) {
 	if customerID <= 0 {
 		return nil, errors.New("invalid customer id")
 	}
@@ -54,31 +69,40 @@ func (s *OrderService) GetByCustomerID(ctx context.Context, customerID int) ([]*
 	return s.OrderRepo.GetByCustomerID(ctx, customerID)
 }
 
-func (s *OrderService) GetByStoreID(ctx context.Context, storeID int) ([]*models.Order, error) {
+func (s *OrderService) GetByStoreID(ctx context.Context, storeID int64, userID int64, userRole domain.Role) ([]*domain.Order, error) {
 	if storeID <= 0 {
 		return nil, errors.New("invalid store id")
+	}
+
+	if userRole != domain.RoleAdmin {
+		store, err := s.StoreRepo.GetByID(ctx, storeID)
+		if err != nil || store == nil {
+			return nil, appErr.ErrStoreNotFound
+		}
+		if store.SellerID != userID {
+			return nil, appErr.ErrAccessDenied
+		}
 	}
 
 	return s.OrderRepo.GetByStoreID(ctx, storeID)
 }
 
-func (s *OrderService) GetByID(ctx context.Context, id int) (*models.Order, error) {
-	if id <= 0 {
-		return nil, errors.New("invalid order id")
+func (s *OrderService) UpdateStatus(ctx context.Context, orderID int64, userID int64, userRole domain.Role, newStatus domain.OrderStatus) error {
+	if orderID <= 0 {
+		return errors.New("invalid order id")
 	}
 
-	return s.OrderRepo.GetByID(ctx, id)
-}
-
-func (s *OrderService) GetUserOrders(ctx context.Context, userID int) ([]*models.Order, error) {
-	if userID <= 0 {
-		return nil, fmt.Errorf("некорректный ID пользователя")
+	order, err := s.OrderRepo.GetByID(ctx, orderID)
+	if err != nil || order == nil {
+		return appErr.ErrOrderNotFound
 	}
 
-	orders, err := s.OrderRepo.GetByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("OrderService.GetUserOrders: %w", err)
+	if userRole != domain.RoleAdmin {
+		store, err := s.StoreRepo.GetByID(ctx, order.StoreID)
+		if err != nil || store == nil || store.SellerID != userID {
+			return appErr.ErrAccessDenied
+		}
 	}
 
-	return orders, nil
+	return s.OrderRepo.UpdateStatus(ctx, orderID, newStatus)
 }

@@ -1,1 +1,6 @@
 config.env
+.env
+bin/
+*.exe
+*.test
+*.prof
