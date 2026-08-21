@@ -8,8 +8,8 @@ import (
 	"shop/internal/domain"
 	"shop/pkg/logger"
 
-	// swaggerFiles "github.com/swaggo/files"
-	// ginSwagger "github.com/swaggo/gin-swagger"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+	_ "shop/cmd/api/docs" 
 )
 
 type Deps struct {
@@ -26,6 +26,9 @@ type Deps struct {
 
 func NewRouter(d Deps) http.Handler {
 	mux := http.NewServeMux()
+
+	// ---------- SWAGGER ----------
+	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
 
 	// ---------- HEALTH CHECK ----------
 	if d.HealthHandler != nil {
@@ -52,30 +55,25 @@ func NewRouter(d Deps) http.Handler {
 		adminOnly := d.AuthMiddleware.RequireRole(domain.RoleAdmin)
 		sellerOrAdmin := d.AuthMiddleware.RequireRole(domain.RoleSeller, domain.RoleAdmin)
 
-		// User profile
 		mux.Handle("GET /users/me", auth(http.HandlerFunc(d.UserHandler.GetMe)))
 		mux.Handle("PATCH /user/me", auth(http.HandlerFunc(d.UserHandler.UpdateMe)))
 
-		// Stores
 		mux.Handle("POST /stores", auth(http.HandlerFunc(d.StoreHandler.CreateStore)))
 		mux.Handle("POST /store", auth(http.HandlerFunc(d.StoreHandler.CreateStore)))
 		mux.Handle("GET /stores/seller", auth(http.HandlerFunc(d.StoreHandler.GetBySellerID)))
 		mux.Handle("PATCH /stores/{id}", auth(http.HandlerFunc(d.StoreHandler.UpdateStore)))
 		mux.Handle("DELETE /stores/{id}", auth(http.HandlerFunc(d.StoreHandler.DeleteStore)))
 
-		// Categories (Admin restricted)
 		mux.Handle("POST /categories", auth(adminOnly(http.HandlerFunc(d.CategoryHandler.CreateCategory))))
 		mux.Handle("POST /category", auth(adminOnly(http.HandlerFunc(d.CategoryHandler.CreateCategory))))
 		mux.Handle("PATCH /categories/{id}", auth(adminOnly(http.HandlerFunc(d.CategoryHandler.UpdateCategory))))
 		mux.Handle("DELETE /categories/{id}", auth(adminOnly(http.HandlerFunc(d.CategoryHandler.DeleteCategory))))
 
-		// Products (Seller / Admin restricted for write)
 		mux.Handle("POST /products", auth(sellerOrAdmin(http.HandlerFunc(d.ProductHandler.CreateProduct))))
 		mux.Handle("POST /product", auth(sellerOrAdmin(http.HandlerFunc(d.ProductHandler.CreateProduct))))
 		mux.Handle("PATCH /products/{id}", auth(sellerOrAdmin(http.HandlerFunc(d.ProductHandler.UpdateProduct))))
 		mux.Handle("DELETE /products/{id}", auth(sellerOrAdmin(http.HandlerFunc(d.ProductHandler.DeleteProduct))))
 
-		// Orders
 		mux.Handle("POST /orders", auth(http.HandlerFunc(d.OrderHandler.CreateOrder)))
 		mux.Handle("POST /order", auth(http.HandlerFunc(d.OrderHandler.CreateOrder)))
 		mux.Handle("GET /orders", auth(http.HandlerFunc(d.OrderHandler.GetUserOrders)))
@@ -83,14 +81,11 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("PATCH /orders/{id}/status", auth(sellerOrAdmin(http.HandlerFunc(d.OrderHandler.UpdateStatus))))
 	}
 
-	// Apply Middlewares: CORS -> RequestLogger -> Mux
 	var handler http.Handler = mux
 	if d.Logger != nil {
 		handler = middleware.RequestLogger(d.Logger)(handler)
 	}
 	handler = middleware.CORS(d.AllowedOrigins)(handler)
 
-	// handler.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	// mux.Handle("GET /swagger/*any", http.HandlerFunc((swaggerFiles.Handler)))
 	return handler
 }
