@@ -43,8 +43,6 @@ func parsePagination(r *http.Request) (int, int) {
 	return limit, offset
 }
 
-// CreateProduct
-//
 // @Summary Create Product
 // @Description Create Product
 // @Tags Product
@@ -53,8 +51,8 @@ func parsePagination(r *http.Request) (int, int) {
 // @Produce json
 // @Param body dto.CreateProductRequest true "Product Data"
 // @Success 201 {object} domain.Product
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /products [POST]
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -87,17 +85,16 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, product)
 }
 
-// GetByID
-//
-// @Summary Get Movie
-// @Description Get movie by ID
-// @Tags Movie
+// @Summary Get Product
+// @Description Get product by ID
+// @Tags Product
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Movie ID"
-// @Success 200 {object} MovieResponse
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Param id path int true "Product ID"
+// @Success 200 {object} domain.Product
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /products/{id} [GET]
 func (h *ProductHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
@@ -119,6 +116,17 @@ func (h *ProductHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, product)
 }
 
+// @Summary Get Products By Store
+// @Description Get all products belonging to a specific store
+// @Tags Product
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Success 200 {array} domain.Product
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /stores/{store_id}/products [GET]
 func (h *ProductHandler) GetByStoreID(w http.ResponseWriter, r *http.Request) {
 	storeID, err := ParseIDParam(r, "store_id")
 	if err != nil || storeID <= 0 {
@@ -140,7 +148,15 @@ func (h *ProductHandler) GetByStoreID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, products)
 }
 
-
+// @Summary Get All Products
+// @Description Get all products with pagination
+// @Tags Product
+// @Produce json
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Success 200 {array} domain.Product
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /products [GET]
 func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	limit, offset := parsePagination(r)
 	products, err := h.ProductService.GetAll(r.Context(), limit, offset)
@@ -156,18 +172,17 @@ func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, products)
 }
 
-// UpdateProduct
-//
 // @Summary Update Product
 // @Description Update product details
 // @Tags Product
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param id path int true "Product ID"
 // @Param body dto.UpdateProductRequest true "Product Update Data"
 // @Success 200 {object} domain.Product
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /products/{id} [PATCH]
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -206,16 +221,15 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, product)
 }
 
-// DeleteProduct
-//
 // @Summary Delete Product
 // @Description Delete product by ID
 // @Tags Product
 // @Security BearerAuth
 // @Produce json
-// @Success 200 {object} OK
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Param id path int true "Product ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /products/{id} [DELETE]
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())

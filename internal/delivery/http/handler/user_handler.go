@@ -26,8 +26,6 @@ func NewUserHandler(userService *service.UserService, log *logger.Logger) *UserH
 	}
 }
 
-// Register
-// 
 // @Summary Register a new user
 // @Description Create a new user account with email and password
 // @Tags Auth
@@ -35,8 +33,8 @@ func NewUserHandler(userService *service.UserService, log *logger.Logger) *UserH
 // @Produce json
 // @Param request body dto.RegisterRequest true "User Registration Info"
 // @Success 201 {object} dto.UserResponse
-// @Failure 400 {object} Bad Request
-// @Failure 409 {object} Conflict
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
 // @Router /register [POST]
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req dto.RegisterRequest
@@ -67,8 +65,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Login
-// 
 // @Summary Authenticate user
 // @Description Authenticate user with credentials and return JWT token
 // @Tags Auth
@@ -76,8 +72,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body dto.LoginRequest true "User Login Credentials"
 // @Success 200 {object} dto.LoginResponse
-// @Failure 400 {object} Bad Request
-// @Failure 401 {object} Unauthorized
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
 // @Router /login [POST]
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req dto.LoginRequest
@@ -102,16 +98,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, dto.LoginResponse{Token: token})
 }
 
-// GetMe
-// 
 // @Summary Get current user profile
 // @Description Get profile details of the currently authenticated user
 // @Tags Users
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} dto.UserResponse
-// @Failure 401 {object} Unauthorized
-// @Failure 404 {object} Not Found
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
 // @Router /users/me [GET]
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -135,8 +129,6 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// UpdateMe
-// 
 // @Summary Update current user profile
 // @Description Update email or password of the currently authenticated user
 // @Tags Users
@@ -145,9 +137,9 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body dto.UpdateUserRequest true "User Update Details"
 // @Success 200 {object} domain.User
-// @Failure 400 {object} Bad Request
-// @Failure 401 {object} Unauthorized
-// @Failure 409 {object} Conflict
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 409 {object} dto.ErrorResponse
 // @Router /user/me [PATCH]
 func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())

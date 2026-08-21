@@ -21,18 +21,16 @@ func NewStoreHandler(storeService *service.StoreService) *StoreHandler {
 	}
 }
 
-// CreateStore
-// 
 // @Summary Create Store
 // @Description Create Store
 // @Tags Store
 // @Security BearerAuth
 // @Accept json
-// @Product json
+// @Produce json
 // @Param body dto.CreateStoreRequest true "Store Data"
 // @Success 201 {object} domain.Store
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /stores [POST]
 func (h *StoreHandler) CreateStore(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -56,16 +54,15 @@ func (h *StoreHandler) CreateStore(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, store)
 }
 
-// GetStore
-// @Summery Get Store
+// @Summary Get Store
 // @Description Get store by ID
 // @Tags Store
-// @security BearerAuth
 // @Produce json
 // @Param id path int true "Store ID"
-// @Success 200 {object} OK
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Success 200 {object} domain.Store
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /stores/{id} [GET]
 func (h *StoreHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
@@ -87,18 +84,16 @@ func (h *StoreHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, store)
 }
 
-// GetBySellerID
-// 
 // @Summary Get store by seller ID
 // @Description Get store details by seller ID path parameter or from authenticated user context
 // @Tags Store
 // @Security BearerAuth
 // @Produce json
-// @Param seller_id path int false "Seller ID (optional if authenticated)"
+// @Param seller_id query int false "Seller ID (optional if authenticated)"
 // @Success 200 {object} domain.Store
-// @Failure 400 {object} Bad Request
-// @Failure 404 {object} Not Found
-// @Failure 500 {object} Internal Server Error 
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /stores/seller [GET]
 func (h *StoreHandler) GetBySellerID(w http.ResponseWriter, r *http.Request) {
 	sellerID, err := ParseIDParam(r, "seller_id")
@@ -125,18 +120,17 @@ func (h *StoreHandler) GetBySellerID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, store)
 }
 
-// UpdateStore
-// 
 // @Summary Update Store
 // @Description Update Store details
 // @Tags Store
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param id path int true "Store ID"
 // @Param body dto.UpdateStoreRequest true "Store Update Data"
 // @Success 200 {object} domain.Store
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /stores/{id} [PATCH]
 func (h *StoreHandler) UpdateStore(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
@@ -175,17 +169,15 @@ func (h *StoreHandler) UpdateStore(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, store)
 }
 
-// DeleteStore
-// 
 // @Summary Delete Store
 // @Description Delete store by ID
 // @Tags Store
 // @Security BearerAuth
 // @Produce json
 // @Param id path int true "Store ID"
-// @Success 200 {object} OK
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Success 204 "No Content"
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /stores/{id} [DELETE]
 func (h *StoreHandler) DeleteStore(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())

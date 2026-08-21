@@ -21,18 +21,16 @@ func NewCategoryHandler(categoryService *service.CategoryService) *CategoryHandl
 	}
 }
 
-// CreateCategory
-// 
 // @Summary Create Category
 // @Description Create Category
 // @Tags Category
 // @Security BearerAuth
 // @Accept json
-// @Product json
+// @Produce json
 // @Param body dto.CreateCategoryRequest true "Category Data"
 // @Success 201 {object} domain.Category
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /categories [POST]
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateCategoryRequest
@@ -50,17 +48,15 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 	RespondWithJSON(w, http.StatusCreated, category)
 }
 
-// GetCategory
-// 
-// @Summery Get Category 
+// @Summary Get Category
 // @Description Get category by ID
 // @Tags Category
 // @Security BearerAuth
 // @Produce json
 // @Param id path int true "Category ID"
 // @Success 200 {object} domain.Category
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /categories/{id} [GET]
 func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
@@ -82,17 +78,14 @@ func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, category)
 }
 
-// GetAll
-// 
 // @Summary Get All
 // @Description Get All Categories
 // @Tags Category
 // @Security BearerAuth
-// @Accept json
 // @Produce json
-// @Success 200 {object} OK
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Success 200 {array} domain.Category
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /categories [GET]
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.CategoryService.GetAll(r.Context())
@@ -108,18 +101,17 @@ func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, categories)
 }
 
-// UpdateCategory
-// 
 // @Summary Update Category
 // @Description Update Category details
 // @Tags Category
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param id path int true "Category ID"
 // @Param body dto.UpdateCategoryRequest true "Category Update Data"
 // @Success 200 {object} domain.Category
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /categories/{id} [PATCH]
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
@@ -147,17 +139,15 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 	RespondWithJSON(w, http.StatusOK, category)
 }
 
-// DeleteCategory
-// 
 // @Summary Delete Category
 // @Description Delete category by ID
 // @Tags Category
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Ctaegory ID"
-// @Success 200 {object} OK
-// @Failure 400 {object} Bad Request
-// @Failure 500 {object} Internal Server Error
+// @Param id path int true "Category ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /categories/{id} [DELETE]
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseIDParam(r, "id")
